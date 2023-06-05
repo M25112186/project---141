@@ -1,51 +1,47 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from bs4 import BeautifulSoup
-import time
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Oct 16 17:02:40 2020
+
+@author: Vishal
+"""
+
+from bs4 import BeautifulSoup as bs
+import requests
 import pandas as pd
 
-# NASA Exoplanet URL
-START_URL = "https://en.wikipedia.org/wiki/List_of_brightest_stars_and_other_record_stars"
 
-# Webdriver
-browser = webdriver.Chrome("D:/Setup/chromedriver_win32/chromedriver.exe")
-browser.get(START_URL)
+bright_stars_url = 'https://en.wikipedia.org/wiki/List_of_brightest_stars_and_other_record_stars'
 
-time.sleep(10)
+page = requests.get(bright_stars_url)
+print(page)
 
-planets_data = []
+soup = bs(page.text,'html.parser')
 
-# Define Exoplanet Data Scrapping Method
-def scrape():
+star_table = soup.find('table')
 
-    for i in range(0,10):
-        print(f'Scrapping page {i+1} ...' )
-        soup = BeautifulSoup(browser.page_source, 'html.parser')
-        for th_tag in soup.find_all("th", attrs={"class", "exoplanet"}):
-            tr_tags = th_tag.find_all("tr")
-            temp_list = []
-            for index, tr_tag in enumerate(tr_tags):
-                if index == 0:
-                    temp_list.append(tr_tag.find_all("a")[0].contents[0])
-                else:
-                    try:
-                        temp_list.append(tr_tag.contents[0])
-                    except:
-                        temp_list.append("")
-            planets_data.append(temp_list)
-        browser.find_element(by=By.XPATH, value='//*[@id="primary_column"]/footer/div/div/div/nav/span[2]/a').click()
-        
-# Calling Method    
-scrape()
-
-# Define Header
-headers = ["v_mag", "proper_name", "bayer_designation", "distance", "spectral_class", "mass", "radius", "luminosity"]
-
-# Define pandas DataFrame   
-planet_df_1 = pd.DataFrame(planets_data, columns=headers)
-
-# Convert to CSV
-planet_df_1.to_csv('scraped_data.csv', index=True, index_label="id")
+temp_list= []
+table_rows = star_table.find_all('tr')
+for tr in table_rows:
+    td = tr.find_all('td')
+    row = [i.text.rstrip() for i in td]
+    temp_list.append(row)
 
 
 
+Star_names = []
+Distance =[]
+Mass = []
+Radius =[]
+Lum = []
+
+for i in range(1,len(temp_list)):
+    Star_names.append(temp_list[i][1])
+    Distance.append(temp_list[i][3])
+    Mass.append(temp_list[i][5])
+    Radius.append(temp_list[i][6])
+    Lum.append(temp_list[i][7])
+    
+df2 = pd.DataFrame(list(zip(Star_names,Distance,Mass,Radius,Lum)),columns=['Star_name','Distance','Mass','Radius','Luminosity'])
+print(df2)
+
+df2.to_csv('bright_stars.csv')
